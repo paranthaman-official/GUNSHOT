@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0c10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="GUNSHOT — free multiplayer 3D shooter in your browser. Private rooms, team deathmatch, 1v1 duels and 12 maps.">
+<title>GUNSHOT — Multiplayer FPS</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Unbounded:wght@600;800;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading"><div class="logo">GUN<em>SH</em><span class="o"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="none" stroke="#ffb23f" stroke-width="4"/><path d="M20 0v12M20 28v12M0 20h12M28 20h12" stroke="#ffb23f" stroke-width="3"/></svg></span><em>T</em></div><p id="loadTxt">LOADING…</p></div>
+
+<!-- ================= HOME ================= -->
+<div id="menu" class="screen hidden">
+ <header class="topbar">
+  <div class="logo">GUN<em>SH</em><span class="o"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="none" stroke="#ffb23f" stroke-width="4"/><path d="M20 0v12M20 28v12M0 20h12M28 20h12" stroke="#ffb23f" stroke-width="3"/></svg></span><em>T</em></div>
+  <nav><button class="tab on">PLAY</button><button class="tab" id="tabLoadout">LOADOUT</button><button class="tab" id="tabSettings">SETTINGS</button></nav>
+  <button class="iconbtn mobonly" id="mSetBtn" aria-label="Settings">⚙</button>
+  <div class="prof"><div class="ava" id="ava">G</div><div class="pt"><b id="profName">ghost</b><small id="profLvl">LEVEL 1</small><div class="xpb"><i id="xpBar"></i></div></div></div>
+ </header>
+ <main class="home">
+  <section class="hero anim">
+   <div><span class="badge"><i></i>SEASON 01 · LIVE</span></div>
+   <h1>GUNSHOT</h1>
+   <p class="lead">Fast multiplayer gunfights across 12 maps. Pick a class, charge your gun power, peek corners and take the shot.</p>
+   <div class="cta">
+    <button class="btn play" id="soloBtn">▶ <span>PLAY NOW<small>PRACTICE VS BOTS</small></span></button>
+    <button class="priv" id="hostBtn">🔒<span>PRIVATE ROOM<small>Only friends with your code</small></span></button>
+   </div>
+   <div class="joinrow"><input id="codeIn" maxlength="5" placeholder="ROOM CODE" autocomplete="off"><button class="btn pri" id="joinBtn">JOIN</button></div>
+   <div id="status"></div>
+  </section>
+  <aside class="side anim">
+   <section class="glass op">
+    <div class="ophead"><div class="h" style="margin:0">Operator</div><div id="swatches"></div></div>
+    <input id="nameIn" maxlength="14" placeholder="your name" style="margin-top:10px" autocomplete="off">
+    <div class="h">Class</div>
+    <div class="ccar"><button class="arr" id="cPrev">‹</button><div id="carBody"></div><button class="arr" id="cNext">›</button></div>
+   </section>
+   <section class="glass career"><div class="h" style="margin-top:0">Career</div><div class="cg" id="career"></div></section>
+   <div class="ad" data-slot="home" data-format="rectangle"></div>
+  </aside>
+ </main>
+ <section class="mapstrip"><div class="mshead"><h3>MAPS</h3><small>Tap to preview · the host picks the map in the lobby</small></div><div class="mscroll" id="mapStrip"></div></section>
+ <footer class="foot"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span>·</span><span id="verTxt"></span></footer>
+</div>
+
+<!-- ================= LOBBY ================= -->
+<div id="lobby" class="screen hidden">
+ <div class="topbar"><div class="logo small">GUN<em>SHOT</em></div><span class="chip" id="lobRoom" style="margin-left:auto;cursor:pointer"></span></div>
+ <div class="lwrap">
+  <section class="glass lp chat">
+   <div class="h" style="margin-top:0">Room chat</div>
+   <div id="chatBox"></div>
+   <input id="lobChatIn" maxlength="120" placeholder="Say something… (Enter)" style="margin-top:10px" autocomplete="off">
+   <div class="ad" data-slot="lobby" data-format="rectangle"></div>
+  </section>
+  <section class="glass lp">
+   <div id="lobHead"><div id="lobThumb"></div><div><div id="lobMap"></div><div id="lobSub"></div></div></div>
+   <div id="lobRules"></div>
+   <div class="teams" id="teams"></div>
+   <div class="lact"><button class="btn ghost" id="switchBtn">⇄ SWITCH TEAMS</button><button class="btn ghost" id="lClassBtn">🔫 CLASS</button><button class="btn ghost" id="copyBtn">🔗 INVITE</button><button class="btn red" id="lobLeave">LEAVE</button></div>
+   <button class="btn pri" id="readyBtn">READY</button>
+   <div id="lobInfo"></div>
+  </section>
+  <section class="glass lp" id="hostPanel">
+   <div class="h" style="margin-top:0" id="setTitle">Match settings</div>
+   <div class="h" style="margin-top:4px">Mode</div><div class="seg" id="modeSeg"></div>
+   <div class="h">Map</div><div class="mapgrid" id="maps"></div>
+   <div class="h">Aim assist <small class="hn">· applies to everyone</small></div><div class="seg" id="aimSeg"></div>
+   <div class="h">Fire mode <small class="hn">· applies to everyone</small></div><div class="seg" id="fireSeg"></div>
+   <div class="h">Time limit</div><div class="seg" id="timeSeg"></div>
+   <div class="row"><div><div class="h">Bots <b id="botsV"></b></div><input type="range" id="botsIn" min="0" max="9" step="1"></div>
+    <div><div class="h">Bot skill</div><div class="seg" id="diffSeg"></div></div></div>
+  </section>
+ </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+<div id="classModal" class="modal hidden"><div class="mbox glass"><div class="mh"><h2>SELECT CLASS</h2><button class="x" data-close="classModal">✕</button></div><div class="cgrid" id="classGrid"></div></div></div>
+<div id="settingsModal" class="modal hidden"><div class="mbox glass" style="width:min(820px,100%)"><div class="mh"><h2>SETTINGS</h2><button class="x" data-close="settingsModal">✕</button></div><div class="stabs" id="setTabs"></div><div id="setBody"></div></div></div>
+<div id="pause" class="modal hidden"><div class="mbox glass"><div class="mh"><h2>PAUSED</h2></div><div class="pbtns">
+ <button class="btn pri big" id="resumeBtn">RESUME</button><button class="btn ghost" id="pClassBtn">CHANGE CLASS</button><button class="btn ghost" id="pSetBtn">SETTINGS</button><button class="btn ghost" id="pInvBtn">COPY INVITE</button><button class="btn red" id="leaveBtn">LEAVE MATCH</button></div></div></div>
+<div id="bindCap" class="modal hidden"><div class="mbox glass" style="width:min(380px,100%);text-align:center"><h2 style="font:900 18px Unbounded">PRESS A KEY</h2><p id="bindFor" style="opacity:.7;margin:10px 0 4px"></p><small style="opacity:.5">Mouse buttons work too · Esc to cancel</small></div></div>
+
+<!-- ================= HUD ================= -->
+<div id="hud" class="hidden">
+ <div id="hurt"></div><div id="pwTint"></div>
+ <div id="scope" class="hidden"><svg viewBox="-100 -100 200 200">
+  <circle r="99" fill="none" stroke="rgba(0,0,0,.65)" stroke-width="3"/>
+  <g stroke="#000"><path d="M-100 0H-28M28 0H100M0 28V100M0 -100V-28" stroke-width="3"/><path d="M-28 0H28M0 -28V28" stroke-width=".45"/></g>
+  <g fill="#000"><circle cx="-7" r=".9"/><circle cx="-14" r=".9"/><circle cx="-21" r=".9"/><circle cx="7" r=".9"/><circle cx="14" r=".9"/><circle cx="21" r=".9"/><circle cy="-7" r=".9"/><circle cy="-14" r=".9"/><circle cy="-21" r=".9"/><circle cy="7" r=".9"/><circle cy="14" r=".9"/><circle cy="21" r=".9"/></g>
+  <g stroke="#000" stroke-width=".4"><path d="M-3 10.5H3M-2 17.5H2M-1.5 24.5H1.5"/></g><circle r=".75" fill="#e33"/></svg>
+  <div id="scopeInfo"><b id="zoomV">4.0×</b><span id="scopeTxt"></span><div id="breath"><i></i></div></div></div>
+ <div id="xh"></div><div id="hm"></div><div id="dirs"></div><div id="dnLayer"></div><div id="scopeHint" class="hidden"></div>
+ <div id="topL"><button id="pauseBtn" class="pe">☰</button><span id="roomChip" class="chip pe"></span><span id="povChip" class="chip pe"></span><span id="hideChip" class="chip hidden">🌿 HIDDEN</span></div>
+ <div id="lbBox" class="glass"></div>
+ <div id="topc"><div class="tsc hidden" id="tsA">0</div><div id="timerBox" class="glass"><div id="modeL">FREE FOR ALL</div><div id="timer">5:00</div></div><div class="tsc hidden" id="tsB">0</div></div>
+ <div id="feed"></div>
+ <div id="chatLog"></div><div id="chatHint"></div><input id="chatIn" class="hidden pe" maxlength="120" placeholder="Type a message…" autocomplete="off">
+ <div id="hpBox" class="glass"><div id="hpNum">100</div><div><div id="hpLbl"><span>HEALTH</span><span id="stance"></span></div><div id="hpWrap"><div id="hpBar"></div></div></div></div>
+ <div id="botR"><div id="pwBox" class="glass"><div id="pwRing"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="4"/><circle id="pwArc" cx="26" cy="26" r="22" fill="none" stroke="#ffb23f" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><div class="ic" id="pwIc">⚡</div></div><div><div id="pwName">POWER</div><div id="pwSt">READY</div></div></div>
+  <div id="wBox" class="glass"><div id="wIcon"></div><div id="wName">AR</div><div id="ammo">30</div></div></div>
+ <div id="announce"><div class="a2"></div><div class="a1"></div></div>
+ <div id="fps" class="hidden"></div><div id="lockHint" class="hidden">Click to aim</div>
+ <div id="board" class="glass hidden"></div>
+ <div id="mob" class="hidden">
+  <div id="joyZone"></div><div id="joy"><div id="knob"></div></div>
+  <div class="mb" id="mFire">FIRE</div><div class="mb" id="mFire2">FIRE</div>
+  <div class="mb" id="mAds">◎</div><div class="mb" id="mJump">JUMP</div><div class="mb" id="mCr">CRCH</div>
+  <div class="mb" id="mRl">↻</div><div class="mb" id="mPw">PWR</div><div class="mb" id="mSpr">RUN</div>
+  <div class="mb" id="mLeanL">◀</div><div class="mb" id="mLeanR">▶</div><div class="mb" id="mPov">👁</div>
+ </div>
+</div>
+
+<!-- ================= DEATH ================= -->
+<div id="death" class="hidden">
+ <div class="elim"><small>ELIMINATED BY</small><div id="kName">—</div><div id="kHp"><i></i></div><div id="kWep"></div></div>
+ <div class="ad" data-slot="death" data-format="rectangle"></div>
+ <div class="dbot pe"><div id="specL"></div><button class="btn pri" id="respawnBtn">RESPAWN</button><div class="dh" id="rsHint">[ Press Space to respawn ]</div>
+  <div class="row"><button class="btn ghost" id="dClassBtn">CHANGE CLASS</button><button class="btn ghost" id="dSetBtn">SETTINGS</button></div></div>
+</div>
+<div id="rotate"><div>📱↻</div><b>Rotate your phone</b><small>GUNSHOT plays in landscape</small></div>
+<div id="toast"></div>
+
+<script>setTimeout(function(){if(!window.__ok){var l=document.getElementById('loadTxt');if(l)l.innerHTML='Could not load the game engine.<br>Check your internet connection and refresh.'}},20000)</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
